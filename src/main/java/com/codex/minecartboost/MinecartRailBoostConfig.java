@@ -13,9 +13,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.OptionalDouble;
 
 public final class MinecartRailBoostConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -33,9 +34,9 @@ public final class MinecartRailBoostConfig {
         RuntimeConfig loaded = readOrCreate();
         cached = loaded;
         MinecartRailBoostMod.LOGGER.info(
-                "Loaded minecart boost config: boostedMaxSpeed={}, boostBlocks={}",
-                loaded.boostedMaxSpeed(),
-                loaded.boostBlocks().size()
+                "Loaded minecart boost config: defaultMaxSpeed={}, blockSpeeds={}",
+                loaded.defaultMaxSpeed(),
+                loaded.blockSpeeds().size()
         );
         return loaded;
     }
@@ -70,30 +71,46 @@ public final class MinecartRailBoostConfig {
         }
     }
 
-    public record RuntimeConfig(double boostedMaxSpeed, Set<Block> boostBlocks) {
+    public record RuntimeConfig(double defaultMaxSpeed, Map<Block, Double> blockSpeeds) {
         public static RuntimeConfig defaults() {
-            return new RuntimeConfig(1.0D, Set.of(Blocks.GOLD_BLOCK));
+            return new RuntimeConfig(0.4D, Map.of(Blocks.GOLD_BLOCK, 1.0D));
+        }
+
+        public double speedFor(Block block) {
+            return blockSpeeds.getOrDefault(block, defaultMaxSpeed);
         }
     }
 
     private record FileConfig(
-            @SerializedName("boostedMaxSpeed") double boostedMaxSpeed,
-            @SerializedName("boostBlocks") List<String> boostBlocks
+            @SerializedName("defaultMaxSpeed") Double defaultMaxSpeed,
+            @SerializedName("blockSpeeds") Map<String, Double> blockSpeeds,
+            @SerializedName("boostedMaxSpeed") Double legacyBoostedMaxSpeed,
+            @SerializedName("boostBlocks") List<String> legacyBoostBlocks
     ) {
         private static FileConfig fromRuntime(RuntimeConfig config) {
-            return new FileConfig(
-                    config.boostedMaxSpeed(),
-                    config.boostBlocks().stream()
-                            .map(Registries.BLOCK::getId)
-                            .map(Identifier::toString)
-                            .toList()
-            );
+            Map<String, Double> blockSpeeds = new LinkedHashMap<>();
+            config.blockSpeeds().forEach((block, speed) -> blockSpeeds.put(Registries.BLOCK.getId(block).toString(), speed));
+            return new FileConfig(config.defaultMaxSpeed(), blockSpeeds, null, null);
         }
 
         private RuntimeConfig toRuntime() {
-            Set<Block> blocks = new LinkedHashSet<>();
-            if (boostBlocks != null) {
-                for (String rawId : boostBlocks) {
+            double parsedDefaultMaxSpeed = defaultMaxSpeed != null
+                    ? defaultMaxSpeed
+                    : (legacyBoostedMaxSpeed != null ? legacyBoostedMaxSpeed : RuntimeConfig.defaults().defaultMaxSpeed());
+            if (parsedDefaultMaxSpeed <= 0.0D) {
+                parsedDefaultMaxSpeed = RuntimeConfig.defaults().defaultMaxSpeed();
+            }
+
+            Map<Block, Double> parsedBlockSpeeds = new LinkedHashMap<>();
+            if (blockSpeeds != null) {
+                for (Map.Entry<String, Double> entry : blockSpeeds.entrySet()) {
+                    String rawId = entry.getKey();
+                    Double rawSpeed = entry.getValue();
+                    if (rawSpeed == null || rawSpeed <= 0.0D) {
+                        MinecartRailBoostMod.LOGGER.warn("Ignoring non-positive speed for block {}: {}", rawId, rawSpeed);
+                        continue;
+                    }
+
                     Identifier id = Identifier.tryParse(rawId);
                     if (id == null) {
                         MinecartRailBoostMod.LOGGER.warn("Ignoring invalid block id in config: {}", rawId);
@@ -105,15 +122,31 @@ public final class MinecartRailBoostConfig {
                         MinecartRailBoostMod.LOGGER.warn("Ignoring unknown block id in config: {}", rawId);
                         continue;
                     }
-                    blocks.add(block);
+                    parsedBlockSpeeds.put(block, rawSpeed);
+                }
+            } else if (legacyBoostBlocks != null) {
+                for (String rawId : legacyBoostBlocks) {
+                    Identifier id = Identifier.tryParse(rawId);
+                    if (id == null) {
+                        MinecartRailBoostMod.LOGGER.warn("Ignoring invalid block id in config: {}", rawId);
+                        continue;
+                    }
+
+                    Block block = Registries.BLOCK.get(id);
+                    if (!Registries.BLOCK.getId(block).equals(id)) {
+                        MinecartRailBoostMod.LOGGER.warn("Ignoring unknown block id in config: {}", rawId);
+                        continue;
+                    }
+                    parsedBlockSpeeds.put(block, legacyBoostedMaxSpeed != null && legacyBoostedMaxSpeed > 0.0D
+                            ? legacyBoostedMaxSpeed
+                            : RuntimeConfig.defaults().blockSpeeds().getOrDefault(block, 1.0D));
                 }
             }
 
-            double speed = boostedMaxSpeed > 0.0D ? boostedMaxSpeed : RuntimeConfig.defaults().boostedMaxSpeed();
-            if (blocks.isEmpty()) {
-                blocks = RuntimeConfig.defaults().boostBlocks();
+            if (parsedBlockSpeeds.isEmpty()) {
+                parsedBlockSpeeds = new LinkedHashMap<>(RuntimeConfig.defaults().blockSpeeds());
             }
-            return new RuntimeConfig(speed, Set.copyOf(blocks));
+            return new RuntimeConfig(parsedDefaultMaxSpeed, Map.copyOf(parsedBlockSpeeds));
         }
     }
 }

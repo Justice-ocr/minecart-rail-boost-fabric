@@ -1,19 +1,46 @@
-﻿# Minecart Rail Boost
+# Minecart Rail Boost
 
 一个 Fabric 服务端模组，也可用于单人存档的集成服务器。
 
 ## 功能
 
 - 只有真实玩家乘坐矿车时才生效
-- 当矿车正下方的方块命中配置列表时，提高矿车速度上限
-- 加速方块和速度上限都写在游戏外配置文件里
+- 当矿车正下方的方块命中配置表时，提高矿车速度上限
+- 不同方块可以对应不同速度上限
 - 修改配置后需要重启服务器或单人世界生效
 
 ## 配置文件
 
 路径：`config/minecart-rail-boost.json`
 
-默认内容：
+### 新版配置
+
+```json
+{
+  "defaultMaxSpeed": 0.4,
+  "blockSpeeds": {
+    "minecraft:gold_block": 1.0,
+    "minecraft:diamond_block": 1.5,
+    "minecraft:emerald_block": 2.0
+  }
+}
+```
+
+### 字段说明
+
+- `defaultMaxSpeed`：未命中配置方块时的默认速度上限
+- `blockSpeeds`：方块 ID 到速度上限的对应表
+
+例如：
+
+- 金块下是 `1.0`
+- 钻石块下是 `1.5`
+- 绿宝石块下是 `2.0`
+- 其他方块走 `defaultMaxSpeed`
+
+## 旧配置兼容
+
+旧版这两项也能继续读：
 
 ```json
 {
@@ -24,23 +51,7 @@
 }
 ```
 
-## 字段说明
-
-- `boostedMaxSpeed`：矿车速度上限，数值越大越快
-- `boostBlocks`：触发加速的方块 ID 列表
-
-示例：
-
-```json
-{
-  "boostedMaxSpeed": 1.5,
-  "boostBlocks": [
-    "minecraft:gold_block",
-    "minecraft:diamond_block",
-    "minecraft:emerald_block"
-  ]
-}
-```
+升级后建议改成新版格式。
 
 ## 使用
 
