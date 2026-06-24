@@ -8,19 +8,20 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.Locale;
+import java.util.OptionalDouble;
 
 public final class MinecartBoostRules {
     private MinecartBoostRules() {
     }
 
-    public static double speedLimitFor(AbstractMinecartEntity minecart, ServerWorld world) {
+    public static OptionalDouble speedLimitFor(AbstractMinecartEntity minecart, ServerWorld world) {
         if (!hasRealPlayerPassenger(minecart)) {
-            return MinecartRailBoostConfig.get().defaultMaxSpeed();
+            return OptionalDouble.empty();
         }
 
         BlockPos supportPos = minecart.getBlockPos().down();
         BlockState supportState = world.getBlockState(supportPos);
-        return MinecartRailBoostConfig.get().speedFor(supportState.getBlock());
+        return OptionalDouble.of(MinecartRailBoostConfig.get().speedFor(supportState.getBlock()));
     }
 
     public static boolean hasRealPlayerPassenger(AbstractMinecartEntity minecart) {

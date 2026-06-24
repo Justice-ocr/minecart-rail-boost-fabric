@@ -15,9 +15,10 @@ public abstract class DefaultMinecartControllerMixin {
     @Inject(method = "getMaxSpeed", at = @At("RETURN"), cancellable = true)
     private void minecartRailBoost$boostDefaultSpeed(ServerWorld world, CallbackInfoReturnable<Double> cir) {
         AbstractMinecartEntity minecart = ((MinecartControllerAccessor) (Object) this).minecart();
-        double configuredLimit = MinecartBoostRules.speedLimitFor(minecart, world);
-        if (configuredLimit > cir.getReturnValue()) {
-            cir.setReturnValue(configuredLimit);
-        }
+        MinecartBoostRules.speedLimitFor(minecart, world).ifPresent(configuredLimit -> {
+            if (configuredLimit > cir.getReturnValue()) {
+                cir.setReturnValue(configuredLimit);
+            }
+        });
     }
 }
