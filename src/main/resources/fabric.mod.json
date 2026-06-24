@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "minecart_rail_boost",
+  "version": "${version}",
+  "name": "Minecart Rail Boost",
+  "description": "Raises minecart speed caps on configured support blocks when a real player is riding.",
+  "authors": ["Codex"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.codex.minecartboost.MinecartRailBoostMod"
+    ]
+  },
+  "mixins": [
+    "minecart_rail_boost.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.17.0",
+    "minecraft": ">=1.21.8",
+    "java": ">=21"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "com.codex.minecartboost.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MinecartControllerAccessor",
+    "DefaultMinecartControllerMixin",
+    "ExperimentalMinecartControllerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
