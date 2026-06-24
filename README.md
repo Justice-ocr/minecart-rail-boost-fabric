@@ -30,12 +30,14 @@
 
 - `defaultMaxSpeed`：未命中配置方块时的默认速度上限
 - `blockSpeeds`：方块 ID 到速度上限的对应表
+- 这里的数值是游戏内“每 tick 最大速度”，可以粗略理解成“格/刻”
+- 例如 `0.4` 接近原版常见矿车上限，`1.0` 约等于 `1 格/刻`，也就是 `20 格/秒`
 
 例如：
 
-- 金块下是 `1.0`
-- 钻石块下是 `1.5`
-- 绿宝石块下是 `2.0`
+- `minecraft:gold_block` 下方是 `1.0`
+- `minecraft:diamond_block` 下方是 `1.5`
+- `minecraft:emerald_block` 下方是 `2.0`
 - 其他方块走 `defaultMaxSpeed`
 
 ## 旧配置兼容
